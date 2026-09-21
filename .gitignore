@@ -1,0 +1,22 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IDEs and Editors ###
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+### OS specific ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
