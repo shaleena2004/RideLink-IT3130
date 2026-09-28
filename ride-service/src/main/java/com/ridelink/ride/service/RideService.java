@@ -91,7 +91,7 @@ public class RideService {
                     "Ride can only be started when status is ACCEPTED");
         }
 
-        ride.setStatus(RideStatus.STARTED);
+        ride.setStatus(RideStatus.IN_PROGRESS);
         ride.setStartedAt(LocalDateTime.now());
 
         Ride updatedRide = rideRepository.save(ride);
@@ -104,9 +104,9 @@ public class RideService {
 
         Ride ride = getRideEntityById(id);
 
-        if (ride.getStatus() != RideStatus.STARTED) {
+        if (ride.getStatus() != RideStatus.IN_PROGRESS) {
             throw new IllegalStateException(
-                    "Ride can only be completed when status is STARTED");
+                    "Ride can only be completed when status is IN_PROGRESS");
         }
 
         ride.setStatus(RideStatus.COMPLETED);
