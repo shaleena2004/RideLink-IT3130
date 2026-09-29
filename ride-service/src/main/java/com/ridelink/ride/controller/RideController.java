@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -62,9 +63,13 @@ public class RideController {
     @PreAuthorize("hasRole('DRIVER')")
     public RideResponse acceptRide(
             @PathVariable String id,
-            @RequestParam String driverId) {
+            @RequestParam String driverId,
+            @RequestHeader("Authorization") String authorizationHeader) {
 
-        return rideService.acceptRide(id, driverId);
+        return rideService.acceptRide(
+                id,
+                driverId,
+                authorizationHeader);
     }
 
     // Driver can start a ride

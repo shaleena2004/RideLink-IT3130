@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.ridelink.ride.dto.DriverAvailabilityResponse;
 import com.ridelink.ride.dto.RideRequest;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.model.Ride;
@@ -15,9 +16,14 @@ import com.ridelink.ride.repository.RideRepository;
 public class RideService {
 
     private final RideRepository rideRepository;
+    private final DriverServiceClient driverServiceClient;
 
-    public RideService(RideRepository rideRepository) {
+    public RideService(
+            RideRepository rideRepository,
+            DriverServiceClient driverServiceClient) {
+
         this.rideRepository = rideRepository;
+        this.driverServiceClient = driverServiceClient;
     }
 
     // Create a new ride request
@@ -57,21 +63,52 @@ public class RideService {
         return toResponse(ride);
     }
 
-    // Accept a ride
-    public RideResponse acceptRide(String id, String driverId) {
+    // Accept a ride after checking Driver Service availability
+    public RideResponse acceptRide(
+            String id,
+            String driverId,
+            String authorizationHeader) {
 
         Ride ride = getRideEntityById(id);
 
+        // Ride must be in REQUESTED state
         if (ride.getStatus() != RideStatus.REQUESTED) {
             throw new IllegalStateException(
                     "Ride can only be accepted when status is REQUESTED");
         }
 
+        // Driver ID is required
         if (driverId == null || driverId.isBlank()) {
             throw new IllegalArgumentException(
                     "Driver ID is required");
         }
 
+        // JWT is required for Driver Service communication
+        if (authorizationHeader == null
+                || !authorizationHeader.startsWith("Bearer ")) {
+
+            throw new IllegalArgumentException(
+                    "Authorization token is required");
+        }
+
+        // Get currently available drivers from Driver Service
+        List<DriverAvailabilityResponse> availableDrivers =
+                driverServiceClient.getAvailableDrivers(
+                        authorizationHeader);
+
+        // Check whether requested driver is available
+        boolean driverAvailable = availableDrivers.stream()
+                .anyMatch(driver ->
+                        driverId.equals(driver.getId())
+                                && "AVAILABLE".equalsIgnoreCase(
+                                        driver.getAvailability()));
+
+        if (!driverAvailable) {
+            throw new IllegalStateException(
+                    "Driver is not available");
+        }
+
+        // Assign driver and accept ride
         ride.setDriverId(driverId);
         ride.setStatus(RideStatus.ACCEPTED);
         ride.setAcceptedAt(LocalDateTime.now());
@@ -86,6 +123,7 @@ public class RideService {
 
         Ride ride = getRideEntityById(id);
 
+        // Ride must be ACCEPTED before starting
         if (ride.getStatus() != RideStatus.ACCEPTED) {
             throw new IllegalStateException(
                     "Ride can only be started when status is ACCEPTED");
@@ -104,6 +142,7 @@ public class RideService {
 
         Ride ride = getRideEntityById(id);
 
+        // Ride must be IN_PROGRESS before completion
         if (ride.getStatus() != RideStatus.IN_PROGRESS) {
             throw new IllegalStateException(
                     "Ride can only be completed when status is IN_PROGRESS");
@@ -122,6 +161,7 @@ public class RideService {
 
         Ride ride = getRideEntityById(id);
 
+        // Cancellation is allowed only from REQUESTED or ACCEPTED
         if (ride.getStatus() != RideStatus.REQUESTED
                 && ride.getStatus() != RideStatus.ACCEPTED) {
 
