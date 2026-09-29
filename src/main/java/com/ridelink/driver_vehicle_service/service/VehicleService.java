@@ -15,6 +15,41 @@ public class VehicleService {
     private VehicleRepository vehicleRepository;
 
     public Vehicle saveVehicle(Vehicle vehicle) {
+
+        if (vehicle.getVehicleId() == null
+                || vehicle.getVehicleId().isEmpty()) {
+
+            List<Vehicle> vehicles = vehicleRepository.findAll();
+
+            int maxId = 0;
+
+            for (Vehicle existingVehicle : vehicles) {
+
+                try {
+
+                    String vehicleId =
+                            existingVehicle.getVehicleId();
+
+                    if (vehicleId != null
+                            && vehicleId.startsWith("V")) {
+
+                        int currentId =
+                                Integer.parseInt(vehicleId.substring(1));
+
+                        if (currentId > maxId) {
+                            maxId = currentId;
+                        }
+                    }
+
+                } catch (Exception ignored) {
+                }
+            }
+
+            vehicle.setVehicleId(
+                    String.format("V%03d", maxId + 1)
+            );
+        }
+
         return vehicleRepository.save(vehicle);
     }
 

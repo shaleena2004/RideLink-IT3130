@@ -15,6 +15,41 @@ public class DriverService {
     private DriverRepository driverRepository;
 
     public Driver saveDriver(Driver driver) {
+
+        if (driver.getDriverId() == null
+                || driver.getDriverId().isEmpty()) {
+
+            List<Driver> drivers = driverRepository.findAll();
+
+            int maxId = 0;
+
+            for (Driver existingDriver : drivers) {
+
+                try {
+
+                    String driverId =
+                            existingDriver.getDriverId();
+
+                    if (driverId != null
+                            && driverId.startsWith("D")) {
+
+                        int currentId =
+                                Integer.parseInt(driverId.substring(1));
+
+                        if (currentId > maxId) {
+                            maxId = currentId;
+                        }
+                    }
+
+                } catch (Exception ignored) {
+                }
+            }
+
+            driver.setDriverId(
+                    String.format("D%03d", maxId + 1)
+            );
+        }
+
         return driverRepository.save(driver);
     }
 
@@ -31,6 +66,7 @@ public class DriverService {
         Driver driver = driverRepository.findById(id).orElse(null);
 
         if (driver != null) {
+
             driver.setName(updatedDriver.getName());
             driver.setPhone(updatedDriver.getPhone());
             driver.setLicenseNumber(updatedDriver.getLicenseNumber());

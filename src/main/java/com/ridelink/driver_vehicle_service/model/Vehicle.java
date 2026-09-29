@@ -7,9 +7,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Vehicle {
 
     @Id
-    private String id;
+    private String id; // MongoDB Internal ID
 
-    private String driverId;
+    private String vehicleId; // V001, V002, V003...
+
+    private String driverId; // D001, D002, D003...
+
     private String registrationNumber;
     private String vehicleType;
     private String model;
@@ -18,12 +21,38 @@ public class Vehicle {
     public Vehicle() {
     }
 
+    public Vehicle(
+            String id,
+            String vehicleId,
+            String driverId,
+            String registrationNumber,
+            String vehicleType,
+            String model,
+            String color) {
+
+        this.id = id;
+        this.vehicleId = vehicleId;
+        this.driverId = driverId;
+        this.registrationNumber = registrationNumber;
+        this.vehicleType = vehicleType;
+        this.model = model;
+        this.color = color;
+    }
+
     public String getId() {
         return id;
     }
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getVehicleId() {
+        return vehicleId;
+    }
+
+    public void setVehicleId(String vehicleId) {
+        this.vehicleId = vehicleId;
     }
 
     public String getDriverId() {

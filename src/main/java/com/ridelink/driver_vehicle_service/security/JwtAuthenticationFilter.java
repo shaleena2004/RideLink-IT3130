@@ -19,9 +19,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
-    public JwtAuthenticationFilter(
-            JwtService jwtService) {
-
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
 
@@ -35,8 +33,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authorizationHeader =
                 request.getHeader("Authorization");
 
+        System.out.println("AUTH HEADER = " + authorizationHeader);
+
         if (authorizationHeader == null
                 || !authorizationHeader.startsWith("Bearer ")) {
+
+            System.out.println("NO TOKEN FOUND");
 
             filterChain.doFilter(request, response);
             return;
@@ -44,9 +46,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authorizationHeader.substring(7);
 
+        System.out.println("TOKEN RECEIVED = " + token);
+
         try {
 
             if (jwtService.isTokenValid(token)) {
+
+                System.out.println("TOKEN VALID");
 
                 String userId =
                         jwtService.extractUserId(token);
@@ -54,9 +60,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role =
                         jwtService.extractRole(token);
 
+                System.out.println("USER ID = " + userId);
+                System.out.println("ROLE = " + role);
+
                 SimpleGrantedAuthority authority =
-                        new SimpleGrantedAuthority(
-                                "ROLE_" + role);
+                        new SimpleGrantedAuthority("ROLE_" + role);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -68,9 +76,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder
                         .getContext()
                         .setAuthentication(authentication);
+
+                System.out.println("AUTHENTICATION SET");
+            } else {
+
+                System.out.println("TOKEN INVALID");
             }
 
         } catch (Exception exception) {
+
+            System.out.println("JWT ERROR:");
+            exception.printStackTrace();
 
             SecurityContextHolder.clearContext();
         }

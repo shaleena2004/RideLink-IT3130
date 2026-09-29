@@ -8,7 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Driver {
 
     @Id
-    private String id;
+    private String id; // MongoDB internal id
+
+    private String driverId; // D001, D002, D003 ...
 
     @NotBlank(message = "Name is required")
     private String name;
@@ -26,10 +28,17 @@ public class Driver {
     public Driver() {
     }
 
-    public Driver(String id, String name, String phone,
-                  String licenseNumber, String availability,
-                  String serviceArea, String currentLocation) {
+    public Driver(String id,
+                  String driverId,
+                  String name,
+                  String phone,
+                  String licenseNumber,
+                  String availability,
+                  String serviceArea,
+                  String currentLocation) {
+
         this.id = id;
+        this.driverId = driverId;
         this.name = name;
         this.phone = phone;
         this.licenseNumber = licenseNumber;
@@ -44,6 +53,14 @@ public class Driver {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getDriverId() {
+        return driverId;
+    }
+
+    public void setDriverId(String driverId) {
+        this.driverId = driverId;
     }
 
     public String getName() {
