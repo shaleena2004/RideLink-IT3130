@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.ridelink.ride.dto.DriverAvailabilityResponse;
+import com.ridelink.ride.dto.FareEstimateRequest;
+import com.ridelink.ride.dto.FareEstimateResponse;
 import com.ridelink.ride.dto.RideRequest;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.model.Ride;
@@ -17,13 +19,16 @@ public class RideService {
 
     private final RideRepository rideRepository;
     private final DriverServiceClient driverServiceClient;
+    private final FarePaymentServiceClient farePaymentServiceClient;
 
     public RideService(
             RideRepository rideRepository,
-            DriverServiceClient driverServiceClient) {
+            DriverServiceClient driverServiceClient,
+            FarePaymentServiceClient farePaymentServiceClient) {
 
         this.rideRepository = rideRepository;
         this.driverServiceClient = driverServiceClient;
+        this.farePaymentServiceClient = farePaymentServiceClient;
     }
 
     // Create a new ride request
@@ -61,6 +66,35 @@ public class RideService {
                                 "Ride not found with id: " + id));
 
         return toResponse(ride);
+    }
+
+    // Request a fare estimate from Fare & Payment Service
+    public FareEstimateResponse estimateFare(
+            String id,
+            FareEstimateRequest request,
+            String authorizationHeader) {
+
+        Ride ride = getRideEntityById(id);
+
+        if (authorizationHeader == null
+                || !authorizationHeader.startsWith("Bearer ")) {
+
+            throw new IllegalArgumentException(
+                    "Authorization token is required");
+        }
+
+        FareEstimateRequest fareRequest =
+                new FareEstimateRequest();
+
+        fareRequest.setRideId(ride.getId());
+        fareRequest.setPassengerId(ride.getPassengerId());
+        fareRequest.setPickupLocation(ride.getPickupLocation());
+        fareRequest.setDestination(ride.getDestination());
+        fareRequest.setDistanceKm(request.getDistanceKm());
+
+        return farePaymentServiceClient.createFare(
+                fareRequest,
+                authorizationHeader);
     }
 
     // Accept a ride after checking Driver Service availability

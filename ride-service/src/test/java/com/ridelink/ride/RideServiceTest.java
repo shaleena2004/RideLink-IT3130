@@ -14,12 +14,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.ridelink.ride.dto.DriverAvailabilityResponse;
+import com.ridelink.ride.dto.FareEstimateRequest;
+import com.ridelink.ride.dto.FareEstimateResponse;
 import com.ridelink.ride.dto.RideRequest;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.model.Ride;
 import com.ridelink.ride.model.RideStatus;
 import com.ridelink.ride.repository.RideRepository;
 import com.ridelink.ride.service.DriverServiceClient;
+import com.ridelink.ride.service.FarePaymentServiceClient;
 import com.ridelink.ride.service.RideService;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +33,9 @@ class RideServiceTest {
 
     @Mock
     private DriverServiceClient driverServiceClient;
+
+    @Mock
+    private FarePaymentServiceClient farePaymentServiceClient;
 
     @InjectMocks
     private RideService rideService;
@@ -125,6 +131,89 @@ class RideServiceTest {
         assertEquals(
                 "Ride not found with id: unknown",
                 exception.getMessage());
+    }
+
+    @Test
+    void estimateFare_shouldCallFarePaymentService() {
+
+        String authorizationHeader =
+                "Bearer test-jwt-token";
+
+        FareEstimateRequest request =
+                new FareEstimateRequest();
+
+        request.setDistanceKm(10);
+
+        FareEstimateResponse fareResponse =
+                new FareEstimateResponse();
+
+        fareResponse.setId("fare-001");
+        fareResponse.setRideId("ride-001");
+        fareResponse.setPassengerId("P001");
+        fareResponse.setPickupLocation("Colombo Fort");
+        fareResponse.setDestination("Kollupitiya");
+        fareResponse.setEstimatedFare(600.0);
+        fareResponse.setFinalFare(600.0);
+
+        when(rideRepository.findById("ride-001"))
+                .thenReturn(Optional.of(ride));
+
+        when(farePaymentServiceClient.createFare(
+                any(FareEstimateRequest.class),
+                eq(authorizationHeader)))
+                .thenReturn(fareResponse);
+
+        FareEstimateResponse response =
+                rideService.estimateFare(
+                        "ride-001",
+                        request,
+                        authorizationHeader);
+
+        assertNotNull(response);
+        assertEquals("fare-001", response.getId());
+        assertEquals("ride-001", response.getRideId());
+        assertEquals("P001", response.getPassengerId());
+        assertEquals(600.0, response.getEstimatedFare());
+        assertEquals(600.0, response.getFinalFare());
+
+        verify(farePaymentServiceClient)
+                .createFare(
+                        argThat(fareRequest ->
+                                "ride-001".equals(fareRequest.getRideId())
+                                        && "P001".equals(fareRequest.getPassengerId())
+                                        && "Colombo Fort".equals(fareRequest.getPickupLocation())
+                                        && "Kollupitiya".equals(fareRequest.getDestination())
+                                        && fareRequest.getDistanceKm() == 10),
+                        eq(authorizationHeader));
+    }
+
+    @Test
+    void estimateFare_shouldRejectMissingAuthorizationToken() {
+
+        FareEstimateRequest request =
+                new FareEstimateRequest();
+
+        request.setDistanceKm(10);
+
+        when(rideRepository.findById("ride-001"))
+                .thenReturn(Optional.of(ride));
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> rideService.estimateFare(
+                                "ride-001",
+                                request,
+                                null));
+
+        assertEquals(
+                "Authorization token is required",
+                exception.getMessage());
+
+        verify(farePaymentServiceClient, never())
+                .createFare(
+                        any(FareEstimateRequest.class),
+                        anyString());
     }
 
     @Test

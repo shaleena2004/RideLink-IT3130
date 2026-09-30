@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ridelink.ride.dto.FareEstimateRequest;
+import com.ridelink.ride.dto.FareEstimateResponse;
 import com.ridelink.ride.dto.RideRequest;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.service.RideService;
@@ -56,6 +58,20 @@ public class RideController {
             @PathVariable String id) {
 
         return rideService.getRideById(id);
+    }
+
+    // Passenger can request a fare estimate
+    @PostMapping("/{id}/fare-estimate")
+    @PreAuthorize("hasRole('PASSENGER')")
+    public FareEstimateResponse estimateFare(
+            @PathVariable String id,
+            @Valid @RequestBody FareEstimateRequest request,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        return rideService.estimateFare(
+                id,
+                request,
+                authorizationHeader);
     }
 
     // Driver can accept a ride
