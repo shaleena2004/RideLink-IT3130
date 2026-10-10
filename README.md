@@ -1,204 +1,103 @@
-# RideLink - Driver & Vehicle Service
+# RideLink Microservices
 
-## Overview
+RideLink is a ride-sharing backend built as four independently runnable Spring Boot services. The services expose REST APIs documented with OpenAPI/Swagger and communicate over HTTP where needed.
 
-Driver & Vehicle Service is a microservice of the RideLink ride-sharing platform.
+## Components
 
-This service is responsible for:
+| Service                                         |   Port | Responsibilities                                                                                      | Collections                         |
+| ----------------------------------------------- | -----: | ----------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| [Account Service](account-service/)             | `8081` | Account registration, login, profile retrieval and updates; issues JWTs used by protected services.   | `user_accounts`                     |
+| [Driver & Vehicle Service](driver-service/)     | `8080` | Driver and vehicle records, driver availability, service areas and current locations; validates JWTs. | `drivers`, `vehicles`               |
+| [Ride Service](ride-service/)                   | `8082` | Ride creation and retrieval, fare estimates, and ride accept/start/complete/cancel lifecycle.         | `rides`                             |
+| [Fare & Payment Service](fare-payment-service/) | `8083` | Fare records, payment creation and processing/status, and receipt generation.                        | `fares`, `payments`, `receipts`     |
 
-- Driver management
-- Vehicle management
-- Driver availability management
-- Service area management
-- Current location management
-- Retrieving available drivers
-- JWT validation and authorization
+Each service has its own Maven project and can be built and run separately. The driver service hosts an aggregated Swagger UI with a definition selector for all four services.
 
----
+All four services share the MongoDB database `ridelink`; the collections in the table are separated by service.
 
-## Technologies Used
+## Requirements
 
-- Java 17
-- Spring Boot 3.5.6
-- Spring Security
-- Spring Data MongoDB
-- MongoDB Atlas
-- Swagger / OpenAPI
+- Java 21 or newer
 - Maven
-- JWT Authentication
+- MongoDB access configured through the root `.env` file
 
----
+## Run the Services
 
-## Project Structure
-
-src/main/java/com/ridelink/driver_vehicle_service
-
-- controller
-- service
-- repository
-- model
-- dto
-- exception
-- config
-- security
-
----
-
-## Features
-
-### Driver Management
-
-- Create Driver
-- Get All Drivers
-- Get Driver By ID
-- Update Driver
-- Get Available Drivers
-
-### Vehicle Management
-
-- Create Vehicle
-- Get All Vehicles
-- Get Vehicle By ID
-- Update Vehicle
-
-### Security
-
-- JWT Validation
-- Spring Security
-- Role-Based Authorization
-- Unauthorized Request Protection
-
----
-
-## Database
-
-MongoDB Atlas
-
-Database:
-
-DriverVehicleDB
-
-Collections:
-
-- drivers
-- vehicles
-
----
-
-## Running the Service
-
-### Clone Repository
+Open a separate terminal for each service from the repository root:
 
 ```bash
-git clone https://github.com/shaleena2004/RideLink-IT3130.git
+mvn -f account-service/pom.xml spring-boot:run
 ```
-
-### Navigate to Service
 
 ```bash
-cd driver-vehicle-service
+mvn -f driver-service/pom.xml spring-boot:run
 ```
-
-### Build Project
 
 ```bash
-./mvnw clean install
+mvn -f ride-service/pom.xml spring-boot:run
 ```
-
-### Run Project
 
 ```bash
-./mvnw spring-boot:run
+mvn -f fare-payment-service/pom.xml spring-boot:run
 ```
 
----
+Wait for each service to report that it has started before using its APIs. To stop a service, press `Ctrl+C` in that service's terminal.
 
-## Configuration
+### Environment Configuration
 
-application.properties
+Set `MONGODB_URI` in the root `.env` file to the connection string for your MongoDB deployment, and set `MONGODB_DATABASE` to `ridelink`. All services use that single database and keep their records in separate MongoDB collections. Use `.env.example` as a reference; never commit `.env` or put database credentials in source files.
 
-```properties
-server.port=8080
+Each service imports the root `.env` whether launched from the repository root or its own service directory. If `.env` is absent, services fall back to `mongodb://localhost:27017`.
 
-spring.application.name=driver-vehicle-service
+All services use JWT validation for protected operations. Use the Account Service to register or log in and obtain a token. Set `RIDELINK_JWT_SECRET` in the root `.env`; services that validate tokens must use the same strong secret.
 
-spring.data.mongodb.uri=YOUR_MONGODB_URI
+## API Documentation
 
-spring.data.mongodb.database=DriverVehicleDB
-```
+The aggregated Swagger UI is served by the Driver & Vehicle Service:
 
----
+- [Aggregated Swagger UI](http://localhost:8080/swagger-ui/index.html)
+- Driver & Vehicle Service OpenAPI: <http://localhost:8080/v3/api-docs>
+- Account Service Swagger UI: <http://localhost:8081/swagger-ui/index.html>
+- Account Service OpenAPI: <http://localhost:8081/v3/api-docs>
+- Ride Service Swagger UI: <http://localhost:8082/swagger-ui/index.html>
+- Ride Service OpenAPI: <http://localhost:8082/v3/api-docs>
+- Fare & Payment Service Swagger UI: <http://localhost:8083/swagger-ui/index.html>
+- Fare & Payment Service OpenAPI: <http://localhost:8083/v3/api-docs>
 
-## Swagger Documentation
+The aggregated UI loads definitions from the other local ports, so start all four services to browse every definition there. The Ride and Fare services allow local cross-origin requests for this Swagger setup.
 
-Open:
+## API Areas
 
-```text
-http://localhost:8080/swagger-ui.html
-```
+### Account Service (`8081`)
 
-or
+- `POST /api/auth/register` and `POST /api/auth/login`
+- `GET /api/accounts/me`
+- `GET /api/accounts/{id}`
+- `PATCH /api/accounts/{id}`
 
-```text
-http://localhost:8080/swagger-ui/index.html
-```
+### Driver & Vehicle Service (`8080`)
 
----
+- Driver operations under `/api/drivers`: create, list, retrieve, update, and find available drivers
+- Vehicle operations under `/api/vehicles`: create, list, retrieve, and update
 
-## API Endpoints
+### Ride Service (`8082`)
 
-### Driver APIs
+- `POST /api/rides` and `GET /api/rides`
+- `GET /api/rides/{id}`
+- Ride actions under `/api/rides/{id}`: fare estimate, accept, start, complete, and cancel
 
-| Method | Endpoint |
-|----------|-----------|
-| POST | /api/drivers |
-| GET | /api/drivers |
-| GET | /api/drivers/{id} |
-| PUT | /api/drivers/{id} |
-| GET | /api/drivers/available |
+### Fare & Payment Service (`8083`)
 
-### Vehicle APIs
+- Fare operations under `/api/fares`: create, list, and retrieve
+- Payment operations under `/api/payments`: create, list, retrieve, process, and mark failed
+- Receipt operations under `/api/receipts`: create for a payment, list, and retrieve
 
-| Method | Endpoint |
-|----------|-----------|
-| POST | /api/vehicles |
-| GET | /api/vehicles |
-| GET | /api/vehicles/{id} |
-| PUT | /api/vehicles/{id} |
+## Authentication
 
----
-
-## Security
-
-This service uses JWT validation.
-
-Protected APIs require:
+Protected endpoints expect a bearer token in the `Authorization` header:
 
 ```text
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-Requests without valid JWT tokens return:
-
-```text
-401 Unauthorized
-```
-
-JWT tokens are issued by the Account Service.
-
----
-
-## Testing
-
-### Successful Scenarios
-
-- Create Driver
-- Create Vehicle
-- Retrieve Drivers
-- Retrieve Vehicles
-- Update Drivers
-- Update Vehicles
-
-### Negative Scenarios
-
-- Unauthorized
+Use the Account Service's login endpoint to obtain a token. Swagger's **Authorize** control can be used to supply it when testing protected operations. Requests without a valid token may return `401 Unauthorized` or `403 Forbidden`, depending on the endpoint's authorization rules.
